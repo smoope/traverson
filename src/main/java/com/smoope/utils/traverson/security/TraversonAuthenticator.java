@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.smoope.utils.traverson.authentication;
+package com.smoope.utils.traverson.security;
 
 /**
  * Authenticator interface

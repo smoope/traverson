@@ -16,7 +16,7 @@
 
 package com.smoope.utils.traverson;
 
-import com.smoope.utils.traverson.authentication.TraversonAuthenticator;
+import com.smoope.utils.traverson.security.TraversonAuthenticator;
 import com.smoope.utils.traverson.utils.UriTemplate;
 
 import com.google.gson.Gson;
