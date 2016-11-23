@@ -82,7 +82,7 @@ public class Traverson {
      * @param serializer Serializer
      * @param defaultHeaders Default headers
      *
-     * @since 1.2.0
+     * @since 1.0.0
      */
     private Traverson(final String baseUri, final OkHttpClient client, final Gson serializer,
                       final Map<String, String> defaultHeaders) {
@@ -142,10 +142,20 @@ public class Traverson {
      *
      * @param newBaseUri Uri to set as root
      * @return Traversing object
-     * @since 1.1.0
+     * @since 1.0.0
      */
     public Traversing root(String newBaseUri) {
         return new Traversing(newBaseUri);
+    }
+
+    /**
+     * Returns a base URI
+     *
+     * @return Base URI
+     * @since 1.0.0
+     */
+    public String getBaseUri() {
+        return baseUri;
     }
 
     public class Traversing {
