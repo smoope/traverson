@@ -148,16 +148,6 @@ public class Traverson {
         return new Traversing(newBaseUri);
     }
 
-    /**
-     * Returns a base URI
-     *
-     * @return Base URI
-     * @since 1.0.0
-     */
-    public String getBaseUri() {
-        return baseUri;
-    }
-
     public class Traversing {
 
         private final String rootUri;
