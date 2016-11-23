@@ -69,7 +69,7 @@ public class UriTemplate {
     }
 
     public boolean hasParameters() {
-        return true;
+        return template.getVariables().length > 0;
     }
 
     public List<String> getParameterNames() {
