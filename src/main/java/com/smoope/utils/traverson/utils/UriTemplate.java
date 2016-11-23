@@ -19,7 +19,9 @@ package com.smoope.utils.traverson.utils;
 import com.damnhandy.uri.template.MalformedUriTemplateException;
 import com.damnhandy.uri.template.VariableExpansionException;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -68,6 +70,10 @@ public class UriTemplate {
 
     public boolean hasParameters() {
         return true;
+    }
+
+    public List<String> getParameterNames() {
+        return Arrays.asList(template.getVariables());
     }
 
     public String toString() {
