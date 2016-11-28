@@ -56,8 +56,8 @@ import okhttp3.Route;
 @Slf4j
 public class Traverson {
 
-    private static final MediaType CONTENT_TYPE_JSON = MediaType.parse("application/json; " +
-            "charset=utf-8");
+    private static final MediaType CONTENT_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
+
     private static final String HEADER_CONTENT_TYPE = "Content-Type";
 
     private static final String HEADER_CONTENT_LENGHT = "Content-Length";
