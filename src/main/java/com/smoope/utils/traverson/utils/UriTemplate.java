@@ -58,11 +58,11 @@ public class UriTemplate {
     }
 
     public UriTemplate expand(String... templateParameters) {
-        int size =templateParameters.length / 2;
-        Map<String, Object> templatesParametersMap = new HashMap<String, Object>(size);
+        int size = templateParameters.length;
+        Map<String, Object> templatesParametersMap = new HashMap<String, Object>(size / 2);
 
-        for (int i = 0; i < size; i++) {
-            templatesParametersMap.put(templateParameters[i], templateParameters[i++]);
+        for (int i = 0; i < size; i+=2) {
+            templatesParametersMap.put(templateParameters[i], templateParameters[i + 1]);
         }
 
         return expand(templatesParametersMap);
