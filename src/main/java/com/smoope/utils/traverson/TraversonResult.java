@@ -42,7 +42,7 @@ public class TraversonResult<T> {
     protected Map<String, T> embedded;
 
     public TraversonResult() {
-        this.links = new HashMap<String, TraversonLink>(0);
+        this.links = new HashMap<>(0);
     }
 
     public TraversonLink getLinkForRel(final String rel) {
@@ -54,6 +54,6 @@ public class TraversonResult<T> {
     }
 
     public Map<String, T> getEmbedded() {
-        return embedded == null ? new HashMap<String, T>(0) : embedded;
+        return embedded == null ? new HashMap<>(0) : embedded;
     }
 }

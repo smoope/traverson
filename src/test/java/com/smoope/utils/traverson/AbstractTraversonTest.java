@@ -21,6 +21,7 @@ public abstract class AbstractTraversonTest {
 
     public enum Response {
         ROOT,
+        ROOT_WITH_EMBEDDED,
         COLLECTION,
         ITEM,
         OAUTH,
@@ -73,55 +74,23 @@ public abstract class AbstractTraversonTest {
 
     public MockResponse generateResponse(final Response response) {
         switch (response) {
-            case ROOT:
-                return new MockResponse()
-                        .setResponseCode(200)
-                        .addHeader("Content-Type", DEFAULT_CONTENT_TYPE)
-                        .addHeader("Cache-Control", "no-store, max-age=86400")
-                        .setBody(getResponse("root.hal"));
-            case COLLECTION:
-                return new MockResponse()
-                    .setResponseCode(200)
-                    .addHeader("Content-Type", DEFAULT_CONTENT_TYPE)
-                    .addHeader("Cache-Control", "no-store, max-age=86400")
-                    .setBody(getResponse("collection.hal"));
-            case ITEM:
-                return new MockResponse()
-                    .setResponseCode(200)
-                    .addHeader("Content-Type", DEFAULT_CONTENT_TYPE)
-                    .addHeader("Cache-Control", "no-store, max-age=86400")
-                    .setBody(getResponse("item.hal"));
-            case OAUTH:
-                return new MockResponse()
-                    .setResponseCode(200)
-                    .addHeader("Content-Type", DEFAULT_CONTENT_TYPE)
-                    .addHeader("Cache-Control", "no-cache")
-                    .setBody(getResponse("oauth"));
-            case OAUTH_ERROR:
-                return new MockResponse()
-                    .setResponseCode(400)
-                    .addHeader("Content-Type", DEFAULT_CONTENT_TYPE)
-                    .addHeader("Cache-Control", "no-cache")
-                    .setBody(getResponse("oauthError"));
+            case ROOT:return getResponse(200, "root.hal");
+            case ROOT_WITH_EMBEDDED:return getResponse(200, "embedded.root.hal");
+            case COLLECTION:return getResponse(200, "collection.hal");
+            case ITEM:return getResponse(200, "item.hal");
+            case OAUTH:return getResponse(200, "oauth");
+            case OAUTH_ERROR:return getResponse(400, "oauthError");
             case _201:
                 return new MockResponse()
                     .setResponseCode(201)
-
                     .addHeader("Location", baseUrl + "/created");
-            case _204:
-                return new MockResponse().setResponseCode(204);
-            case _400:
-                return new MockResponse().setResponseCode(400);
-            case _401:
-                return new MockResponse().setResponseCode(401);
-            case _403:
-                return new MockResponse().setResponseCode(403);
-            case _405:
-                return new MockResponse().setResponseCode(404);
-            case _500:
-                return new MockResponse().setResponseCode(500);
-            case _503:
-                return new MockResponse().setResponseCode(503);
+            case _204:return new MockResponse().setResponseCode(204);
+            case _400:return new MockResponse().setResponseCode(400);
+            case _401:return new MockResponse().setResponseCode(401);
+            case _403:return new MockResponse().setResponseCode(403);
+            case _405:return new MockResponse().setResponseCode(404);
+            case _500:return new MockResponse().setResponseCode(500);
+            case _503:return new MockResponse().setResponseCode(503);
             case _307:
                 return new MockResponse()
                         .setResponseCode(307)
@@ -142,7 +111,7 @@ public abstract class AbstractTraversonTest {
         return file;
     }
 
-    private String getResponse(final String name) {
+    private String getResponseContent(final String name) {
         URL resourceUrl = getClass().getResource(String.format("/responses/%s.json", name));
 
         String response = "";
@@ -156,5 +125,13 @@ public abstract class AbstractTraversonTest {
         }
 
         return response.replace("http://old-republic.com", baseUrl);
+    }
+
+    private MockResponse getResponse(final int code, final String name) {
+        return new MockResponse()
+            .setResponseCode(code)
+            .addHeader("Content-Type", DEFAULT_CONTENT_TYPE)
+            .addHeader("Cache-Control", "no-store, max-age=86400")
+            .setBody(getResponseContent(name));
     }
 }

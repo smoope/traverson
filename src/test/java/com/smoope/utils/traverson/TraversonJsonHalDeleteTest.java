@@ -1,5 +1,7 @@
 package com.smoope.utils.traverson;
 
+import static org.junit.Assert.assertThat;
+
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
@@ -70,5 +72,59 @@ public class TraversonJsonHalDeleteTest extends AbstractJsonHalTest {
         traverson.follow("jedi").delete();
 
         Assert.assertThat(requests, CoreMatchers.is(2));
+    }
+
+    @Test
+    public void followMulipleRelationWithItem() throws IOException {
+        server.setDispatcher(new Dispatcher() {
+            @Override
+            public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
+                if (request.getPath().equals("/api")) {
+                    requests++;
+                    return generateResponse(Response.ROOT);
+                } else if (request.getPath().contains("/jedi") && request.getMethod().equals("GET")) {
+                    requests++;
+                    return generateResponse(Response.ITEM);
+                } else if (request.getPath().contains("/jedi") && (request.getMethod().equals("DELETE") || request.getMethod().equals("GET"))) {
+                    requests++;
+                    return generateResponse(Response._204);
+                } else {
+                    return generateResponse(Response._404);
+                }
+            }
+        });
+
+        traverson
+            .follow("jedi", "self")
+            .delete();
+
+        assertThat(requests, CoreMatchers.is(3));
+    }
+
+    @Test
+    public void followEmbeddedResourceRelation() throws IOException {
+        server.setDispatcher(new Dispatcher() {
+            @Override
+            public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
+                if (request.getPath().equals("/api")) {
+                    requests++;
+                    return generateResponse(Response.ROOT_WITH_EMBEDDED);
+                } else if (request.getPath().contains("/jedi") && request.getMethod().equals("GET")) {
+                    requests++;
+                    return generateResponse(Response.ITEM);
+                } else if (request.getPath().contains("/jedi") && request.getMethod().equals("DELETE")) {
+                    requests++;
+                    return generateResponse(Response._204);
+                } else {
+                    return generateResponse(Response._404);
+                }
+            }
+        });
+
+        traverson
+            .follow("jedi", "self")
+            .delete();
+
+        assertThat(requests, CoreMatchers.is(2));
     }
 }

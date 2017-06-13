@@ -1,0 +1,25 @@
+{
+  "_links": {
+    "self": {
+      "href": "http://old-republic.com"
+    },
+    "jedi": {
+      "href": "http://old-republic.com/jedi{?page,sort}",
+      "templated": true
+    }
+  },
+  "_embedded" : {
+    "jedi" : {
+      "id": 1,
+      "name": "Luke Skywalker",
+      "_links": {
+        "self": {
+          "href": "http://old-republic.com/jedi/1"
+        },
+        "lightSaber": {
+          "href": "http://old-republic.com/jedi/1/saber"
+        }
+      }
+    }
+  }
+}
