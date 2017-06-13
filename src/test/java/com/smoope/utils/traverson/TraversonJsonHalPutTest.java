@@ -145,7 +145,7 @@ public class TraversonJsonHalPutTest extends AbstractJsonHalTest {
             .follow("jedi")
             .put(new Object(), ItemResult.class);
 
-        assertThat(requests, CoreMatchers.is(1));
+        assertThat(requests, CoreMatchers.is(2));
         assertThat(result.getId(), CoreMatchers.notNullValue());
         assertThat(result.getName(), CoreMatchers.notNullValue());
         assertThat(result.getLinkForSelf(), CoreMatchers.notNullValue());

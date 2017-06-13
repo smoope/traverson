@@ -27,10 +27,10 @@ import com.smoope.utils.traverson.security.TraversonAuthenticator;
 import com.smoope.utils.traverson.utils.UriTemplate;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -72,8 +73,6 @@ public class Traverson {
     private static final String METHOD_POST = "POST";
 
     private static final String METHOD_PUT = "PUT";
-
-    private static final Type TRAVERSON_RESULT = new TypeToken<TraversonResult<TraversonResult>>(){}.getType();
 
     private final String baseUri;
 
@@ -227,7 +226,7 @@ public class Traverson {
 
         private CallResult call(final RequestMethod method, final RequestBody object) throws TraversonException, IOException {
             TraversingResult traversed = traverse
-                ? traverseToFinalUrl()
+                ? traverseToFinalUrl(method == GET)
                 : TraversingResult.url(UriTemplate.fromUri(rels.get(0)).expand(templateParameters).toString());
 
             if (traversed.isUrl()) {
@@ -250,11 +249,11 @@ public class Traverson {
             return call(method, RequestBody.create(null, new byte[0]));
         }
 
-        private TraversingResult traverseToFinalUrl() throws TraversonException, IOException {
-            return getAndFindLinkWithRel(TraversingResult.url(rootUri), rels.iterator());
+        private TraversingResult traverseToFinalUrl(final boolean isGetRequest) throws TraversonException, IOException {
+            return getAndFindLinkWithRel(TraversingResult.url(rootUri), rels.iterator(), isGetRequest);
         }
 
-        private TraversingResult getAndFindLinkWithRel(TraversingResult result, Iterator<String> rels)
+        private TraversingResult getAndFindLinkWithRel(TraversingResult result, Iterator<String> rels, boolean isGetRequest)
                 throws TraversonException, IOException {
             log.debug("Traversing: {}", result);
 
@@ -277,7 +276,13 @@ public class Traverson {
 
             String next = rels.next();
             if (response.getEmbedded().containsKey(next)) {
-                return getAndFindLinkWithRel(TraversingResult.embedded(response.getEmbedded().get(next)), rels);
+                if (rels.hasNext()) {
+                    return getAndFindLinkWithRel(TraversingResult.embedded(response.getEmbedded().get(next)), rels, isGetRequest);
+                } else if (isGetRequest) {
+                    return TraversingResult.embedded(response.getEmbedded().get(next));
+                } else {
+                    return getAndFindLinkWithRel(TraversingResult.embedded(response.getEmbedded().get(next)), Arrays.asList("self").iterator(), false);
+                }
             }
 
             TraversonLink link = response.getLinkForRel(next);
@@ -290,7 +295,7 @@ public class Traverson {
             }
 
             UriTemplate template = UriTemplate.fromUri(link.getHref());
-            return getAndFindLinkWithRel(TraversingResult.url(template.hasParameters() ? template.expand(templateParameters).toString() : template.toString()), rels);
+            return getAndFindLinkWithRel(TraversingResult.url(template.hasParameters() ? template.expand(templateParameters).toString() : template.toString()), rels, isGetRequest);
         }
 
         private Response handle201LocationRedirect(Response response) throws IOException {
@@ -678,6 +683,7 @@ public class Traverson {
 
     @Getter
     @RequiredArgsConstructor(access = PRIVATE)
+    @ToString(of = { "url", "embedded" })
     public static class TraversingResult {
 
         private final String url;
