@@ -16,12 +16,19 @@
 
 package com.smoope.utils.traverson;
 
+import static com.smoope.utils.traverson.Traverson.RequestMethod.DELETE;
+import static com.smoope.utils.traverson.Traverson.RequestMethod.GET;
+import static com.smoope.utils.traverson.Traverson.RequestMethod.POST;
+import static com.smoope.utils.traverson.Traverson.RequestMethod.PUT;
+import static lombok.AccessLevel.PRIVATE;
+import static okhttp3.MultipartBody.FORM;
+
 import com.smoope.utils.traverson.security.TraversonAuthenticator;
 import com.smoope.utils.traverson.utils.UriTemplate;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -65,6 +72,8 @@ public class Traverson {
     private static final String METHOD_POST = "POST";
 
     private static final String METHOD_PUT = "PUT";
+
+    private static final Type TRAVERSON_RESULT = new TypeToken<TraversonResult<TraversonResult>>(){}.getType();
 
     private final String baseUri;
 
@@ -164,20 +173,20 @@ public class Traverson {
 
         public Traversing(String rootUri) {
             this.rootUri = rootUri;
-            this.rels = new ArrayList<String>();
-            this.templateParameters = new HashMap<String, Object>();
-            this.headers = new HashMap<String, String>();
+            this.rels = new ArrayList<>();
+            this.templateParameters = new HashMap<>();
+            this.headers = new HashMap<>();
         }
 
         private Request prepareRequest(final String url, final RequestBody object,
                                        final RequestMethod method) {
-            HashMap<String, String> allHeaders = new HashMap<String, String>();
+            HashMap<String, String> allHeaders = new HashMap<>();
             allHeaders.putAll(defaultHeaders);
             allHeaders.putAll(headers);
 
             Request.Builder request = new Request.Builder()
-                    .url(url)
-                    .headers(Headers.of(allHeaders));
+                .url(url)
+                .headers(Headers.of(allHeaders));
 
             switch (method) {
                 case GET:
@@ -218,22 +227,22 @@ public class Traverson {
 
         private CallResult call(final RequestMethod method, final RequestBody object) throws TraversonException, IOException {
             TraversingResult traversed = traverse
-                    ? traverseToFinalUrl()
-                    : TraversingResult.url(UriTemplate.fromUri(rels.get(0)).expand(templateParameters).toString());
+                ? traverseToFinalUrl()
+                : TraversingResult.url(UriTemplate.fromUri(rels.get(0)).expand(templateParameters).toString());
 
             if (traversed.isUrl()) {
                 return CallResult.response(
-                        handleErrors(
-                                client.newCall(
-                                        prepareRequest(
-                                                traversed.getUrl(),
-                                                object,
-                                                method)
-                                ).execute()
-                        )
+                    handleErrors(
+                        client.newCall(
+                            prepareRequest(
+                                traversed.getUrl(),
+                                object,
+                                method)
+                        ).execute()
+                    )
                 );
             } else {
-                return CallResult.embedded(traversed.getEmbedded());
+                return CallResult.embedded(serializer.toJson(traversed.getEmbedded()));
             }
         }
 
@@ -242,53 +251,51 @@ public class Traverson {
         }
 
         private TraversingResult traverseToFinalUrl() throws TraversonException, IOException {
-            return getAndFindLinkWithRel(rootUri, rels.iterator());
+            return getAndFindLinkWithRel(TraversingResult.url(rootUri), rels.iterator());
         }
 
-        private TraversingResult getAndFindLinkWithRel(String url, Iterator<String> rels)
+        private TraversingResult getAndFindLinkWithRel(TraversingResult result, Iterator<String> rels)
                 throws TraversonException, IOException {
-            log.debug("Traversing an URL: {}", url);
+            log.debug("Traversing: {}", result);
 
             if (!rels.hasNext()) {
-                return TraversingResult.url(url);
+                return result;
             }
 
-            TraversonResult<Object> response = prepareResponse(
+            TraversonResult<Object> response = result.isUrl()
+                ? prepareResponse(
                     CallResult.response(
-                            handleErrors(
-                                    client.newCall(
-                                            prepareRequest(url, RequestMethod.GET)
-                                    ).execute()
-                            )
+                        handleErrors(
+                            client.newCall(
+                                prepareRequest(result.getUrl(), GET)
+                            ).execute()
+                        )
                     ),
                     TraversonResult.class
-            );
+                )
+                : serializer.fromJson(serializer.toJson(result.getEmbedded()), TraversonResult.class);
 
             String next = rels.next();
             if (response.getEmbedded().containsKey(next)) {
-                return TraversingResult.embedded(serializer.toJson(response.getEmbedded().get(next)));
+                return getAndFindLinkWithRel(TraversingResult.embedded(response.getEmbedded().get(next)), rels);
             }
 
             TraversonLink link = response.getLinkForRel(next);
             if (link == null) {
                 throw new TraversonException(
-                        404,
-                        String.format("Couldn't find '%s' in %s", next, response),
-                        ""
+                    404,
+                    String.format("Couldn't find '%s' in %s", next, response),
+                    ""
                 );
             }
 
             UriTemplate template = UriTemplate.fromUri(link.getHref());
-            if (template.hasParameters()) {
-                return getAndFindLinkWithRel(template.expand(templateParameters).toString(), rels);
-            } else {
-                return getAndFindLinkWithRel(template.toString(), rels);
-            }
+            return getAndFindLinkWithRel(TraversingResult.url(template.hasParameters() ? template.expand(templateParameters).toString() : template.toString()), rels);
         }
 
         private Response handle201LocationRedirect(Response response) throws IOException {
             if (follow201Location && response.code() == 201 && response.header("Location") != null) {
-                return client.newCall(prepareRequest(response.header("Location"), RequestMethod.GET)).execute();
+                return client.newCall(prepareRequest(response.header("Location"), GET)).execute();
             } else {
                 return response;
             }
@@ -345,47 +352,47 @@ public class Traverson {
         }
 
         public Response get() throws TraversonException, IOException {
-            return call(RequestMethod.GET).getResponse();
+            return call(GET).getResponse();
         }
 
         public <T> T get(Class<T> returnType) throws TraversonException, IOException {
             return prepareResponse(
-                    call(RequestMethod.GET),
-                    returnType
+                call(GET),
+                returnType
             );
         }
 
         public <T> T get(Type type) throws TraversonException, IOException {
             return prepareResponse(
-                    call(RequestMethod.GET),
-                    type
+                call(GET),
+                type
             );
         }
 
         public Response post() throws TraversonException, IOException {
-            return call(RequestMethod.POST).getResponse();
+            return call(POST).getResponse();
         }
 
         public Response post(Object body) throws TraversonException, IOException {
-            return call(RequestMethod.POST, json(body)).getResponse();
+            return call(POST, json(body)).getResponse();
         }
 
         public <T, R> R post(T body, Class<R> returnType) throws TraversonException, IOException {
             return (R) prepareResponse(
-                    CallResult.response(handle201LocationRedirect(call(RequestMethod.POST, json(body)).getResponse())),
-                    returnType
+                CallResult.response(handle201LocationRedirect(call(POST, json(body)).getResponse())),
+                returnType
             );
         }
 
         public <R> R postForm(Map<String, String> params, Class<R> returnType) throws TraversonException, IOException {
             final MultipartBody.Builder requestBody = new MultipartBody.Builder()
-                    .setType(MultipartBody.FORM);
+                .setType(FORM);
             params.forEach((name, value) -> requestBody.addFormDataPart(name, value));
 
             return (R) prepareResponse(
-                    CallResult.response(handle201LocationRedirect(call(RequestMethod.POST,
-                            requestBody.build()).getResponse())),
-                    returnType
+                CallResult.response(handle201LocationRedirect(call(POST,
+                    requestBody.build()).getResponse())),
+                returnType
             );
         }
 
@@ -395,37 +402,37 @@ public class Traverson {
             allHeaders.putAll(headers);
 
             RequestBody requestBody = new MultipartBody.Builder()
-                    .setType(MultipartBody.FORM)
-                    .addFormDataPart(
-                            "file",
-                            file.getName(),
-                            RequestBody.create(
-                                    MediaType.parse(URLConnection.guessContentTypeFromName(file.getName())),
-                                    file
-                            )
+                .setType(FORM)
+                .addFormDataPart(
+                    "file",
+                    file.getName(),
+                    RequestBody.create(
+                        MediaType.parse(URLConnection.guessContentTypeFromName(file.getName())),
+                        file
                     )
-                    .build();
+                )
+                .build();
 
             return handleErrors(
-                    client.newCall(
-                            new Request.Builder()
-                                    .url(UriTemplate.fromUri(rels.get(0)).expand(templateParameters).toString())
-                                    .headers(Headers.of(allHeaders))
-                                    .post(requestBody)
-                                    .build()
-                    ).execute()
+                client.newCall(
+                    new Request.Builder()
+                        .url(UriTemplate.fromUri(rels.get(0)).expand(templateParameters).toString())
+                        .headers(Headers.of(allHeaders))
+                        .post(requestBody)
+                        .build()
+                ).execute()
             );
         }
 
         public <T, R> R put(T object, Class<R> returnType) throws TraversonException, IOException {
             return prepareResponse(
-                    call(RequestMethod.PUT, json(object)),
-                    returnType
+                call(PUT, json(object)),
+                returnType
             );
         }
 
         public void delete() throws TraversonException, IOException {
-            call(RequestMethod.DELETE);
+            call(DELETE);
         }
     }
 
@@ -454,7 +461,7 @@ public class Traverson {
             this.baseUri = baseUri;
             this.client = new OkHttpClient.Builder();
             this.serializer = new Gson();
-            this.defaultHeaders = new HashMap<String, String>();
+            this.defaultHeaders = new HashMap<>();
         }
 
         /**
@@ -595,12 +602,12 @@ public class Traverson {
                         defaultHeader("Authorization", credentials);
 
                         Request.Builder newRequest = response.request().newBuilder()
-                                .headers(Headers.of(defaultHeaders));
+                            .headers(Headers.of(defaultHeaders));
 
                         if (METHOD_POST.equalsIgnoreCase(response.request().method()) || METHOD_PUT.equalsIgnoreCase(response.request().method())) {
                             newRequest.addHeader(HEADER_CONTENT_TYPE, response.request().header(HEADER_CONTENT_TYPE))
-                                    .addHeader(HEADER_CONTENT_LENGHT, response.request().header(HEADER_CONTENT_LENGHT))
-                                    .method(response.request().method(), response.request().body());
+                                .addHeader(HEADER_CONTENT_LENGHT, response.request().header(HEADER_CONTENT_LENGHT))
+                                .method(response.request().method(), response.request().body());
                         }
 
                         return newRequest.build();
@@ -616,8 +623,8 @@ public class Traverson {
                         if (request.header("Authorization") == null) {
                             defaultHeader("Authorization", authenticator.getCredentials());
                             request = request.newBuilder()
-                                    .headers(Headers.of(defaultHeaders))
-                                    .build();
+                                .headers(Headers.of(defaultHeaders))
+                                .build();
                         }
 
                         return chain.proceed(request);
@@ -670,12 +677,12 @@ public class Traverson {
     }
 
     @Getter
-    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    @RequiredArgsConstructor(access = PRIVATE)
     public static class TraversingResult {
 
         private final String url;
 
-        private final String embedded;
+        private final Object embedded;
 
         public boolean isUrl() {
             return url != null;
@@ -689,13 +696,13 @@ public class Traverson {
             return new TraversingResult(url, null);
         }
 
-        public static TraversingResult embedded(String embedded) {
+        public static TraversingResult embedded(Object embedded) {
             return new TraversingResult(null, embedded);
         }
     }
 
     @Getter
-    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    @RequiredArgsConstructor(access = PRIVATE)
     public static class CallResult {
 
         private final Response response;
