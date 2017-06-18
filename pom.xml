@@ -5,7 +5,7 @@
 
     <groupId>com.smoope.utils</groupId>
     <artifactId>traverson</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
     <packaging>jar</packaging>
     <name>Hypermedia API/HATEOAS java client</name>
     <description>Java implementation of a Hypermedia API/HATEOAS client</description>
@@ -65,13 +65,7 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>3.4.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.squareup.okio</groupId>
-            <artifactId>okio</artifactId>
-            <version>1.6.0</version>
+            <version>3.8.0</version>
         </dependency>
 
         <dependency>
@@ -108,7 +102,7 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>mockwebserver</artifactId>
-            <version>3.4.1</version>
+            <version>3.8.0</version>
             <scope>test</scope>
         </dependency>
 
